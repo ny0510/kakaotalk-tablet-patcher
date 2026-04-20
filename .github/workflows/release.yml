@@ -5,24 +5,38 @@ on:
 jobs:
   release:
     name: release ${{ matrix.target }}
-    runs-on: ubuntu-latest
+    runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
       matrix:
         include:
           - target: x86_64-pc-windows-gnu
-            archive: zip
+            os: ubuntu-latest
           - target: x86_64-unknown-linux-musl
-            archive: tar.gz tar.xz tar.zst
+            os: ubuntu-latest
           - target: x86_64-apple-darwin
-            archive: zip
+            os: macos-latest
     steps:
-      - uses: actions/checkout@master
-      - name: Compile and release
-        uses: rust-build/rust-build.action@v1.4.5
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - uses: actions/checkout@v4
+
+      - name: Install Rust
+        uses: dtolnay/rust-toolchain@stable
         with:
-          RUSTTARGET: ${{ matrix.target }}
-          ARCHIVE_TYPES: ${{ matrix.archive }}
-          TOOLCHAIN_VERSION: stable
+          targets: ${{ matrix.target }}
+
+      - name: Install cross (Linux only)
+        if: matrix.os == 'ubuntu-latest'
+        run: cargo install cross --git https://github.com/cross-rs/cross
+
+      - name: Build (Linux/Windows)
+        if: matrix.os == 'ubuntu-latest'
+        run: cross build --release --target ${{ matrix.target }}
+
+      - name: Build (macOS)
+        if: matrix.os == 'macos-latest'
+        run: cargo build --release --target ${{ matrix.target }}
+
+      - name: Upload to release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: target/${{ matrix.target }}/release/*
