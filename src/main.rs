@@ -2,15 +2,15 @@ mod downloader;
 mod gplay;
 mod patcher;
 
-use std::path::{Path, PathBuf};
+use std::path::{ Path, PathBuf };
 
-use anyhow::{Result, bail};
+use anyhow::{ Result, bail };
 use clap::Parser;
 use reqwest::Client;
 
 #[derive(Parser)]
 #[command(name = "kakaotalk-tablet-patcher")]
-#[command(about = "카카오톡 태블릿 버전(다중기기 로그인) 패치 도구", long_about = None)]
+#[command(about = "KakaoTalk multi-login patcher for non-tablet devices", long_about = None)]
 #[command(author = "ny64")]
 struct Cli {
     #[command(subcommand)]
@@ -24,8 +24,7 @@ struct Cli {
 enum Commands {
     #[command(about = "Download all required files (LSPatch, TabletSpoof, KakaoTalk APK)")]
     Download,
-    #[command(about = "Patch KakaoTalk APK with TabletSpoof using LSPatch")]
-    Patch {
+    #[command(about = "Patch KakaoTalk APK with TabletSpoof using LSPatch")] Patch {
         /// Path to KakaoTalk base APK file. Skips Google Play download when provided.
         #[arg(long)]
         apk: Option<PathBuf>,
@@ -33,8 +32,7 @@ enum Commands {
         #[arg(long, requires = "apk")]
         splits_dir: Option<PathBuf>,
     },
-    #[command(about = "Download and patch in one step")]
-    Run {
+    #[command(about = "Download and patch in one step")] Run {
         /// Path to KakaoTalk base APK file. Skips Google Play download when provided.
         #[arg(long)]
         apk: Option<PathBuf>,
@@ -44,7 +42,10 @@ enum Commands {
     },
 }
 
-async fn ensure_downloads(client: &Client, dirs: &downloader::WorkDirs) -> Result<downloader::KakaoTalkArtifacts> {
+async fn ensure_downloads(
+    client: &Client,
+    dirs: &downloader::WorkDirs
+) -> Result<downloader::KakaoTalkArtifacts> {
     downloader::download_lspatch(client, dirs).await?;
     downloader::download_tabletspoof(client, dirs).await?;
     downloader::download_kakaotalk(client, dirs).await
@@ -69,7 +70,7 @@ async fn resolve_artifacts(
     client: &Client,
     dirs: &downloader::WorkDirs,
     apk: Option<PathBuf>,
-    splits_dir: Option<PathBuf>,
+    splits_dir: Option<PathBuf>
 ) -> Result<downloader::KakaoTalkArtifacts> {
     downloader::download_lspatch(client, dirs).await?;
     downloader::download_tabletspoof(client, dirs).await?;
@@ -81,11 +82,7 @@ async fn resolve_artifacts(
         if !apk_path.extension().is_some_and(|e| e == "apk") {
             bail!("Provided file does not have .apk extension: {}", apk_path.display());
         }
-        let splits = if let Some(ref dir) = splits_dir {
-            collect_splits(&dir)?
-        } else {
-            vec![]
-        };
+        let splits = if let Some(ref dir) = splits_dir { collect_splits(&dir)? } else { vec![] };
         println!("[Custom APK] Using provided APK: {}", apk_path.display());
         if !splits.is_empty() {
             println!("  With {} split(s) from: {}", splits.len(), splits_dir.unwrap().display());
