@@ -1,6 +1,7 @@
 mod downloader;
 mod gplay;
 mod patcher;
+mod update;
 
 use std::path::{ Path, PathBuf };
 
@@ -99,20 +100,25 @@ async fn main() -> Result<()> {
     let dirs = downloader::WorkDirs::new(&cli.work_dir);
     dirs.ensure_dirs()?;
 
+    let client = Client::new();
+
+    match update::check_for_update(&client).await {
+        Ok(Some(msg)) => println!("[Update] {msg}\n"),
+        Ok(None) => {}
+        Err(_) => {}
+    }
+
     match cli.command {
         Commands::Download => {
-            let client = Client::new();
             let artifacts = ensure_downloads(&client, &dirs).await?;
             println!("\nAll downloads complete (base + {} splits).", artifacts.splits.len());
         }
         Commands::Patch { apk, splits_dir } => {
-            let client = Client::new();
             let artifacts = resolve_artifacts(&client, &dirs, apk, splits_dir).await?;
             println!();
             patcher::patch_apk(&client, &dirs, &artifacts).await?;
         }
         Commands::Run { apk, splits_dir } => {
-            let client = Client::new();
             let artifacts = resolve_artifacts(&client, &dirs, apk, splits_dir).await?;
             println!();
             patcher::patch_apk(&client, &dirs, &artifacts).await?;
